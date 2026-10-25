@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LiveSpark · All overlays</title>
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+  iframe { position: absolute; inset: 0; width: 1080px; height: 1920px; border: 0; background: transparent; }
+</style>
+</head>
+<body>
+<script>
+  // Every LiveSpark overlay in one transparent 1080x1920 page, so apps like
+  // TikTok LIVE Studio need only one Link source.
+  const q = location.search.replace(/^\?/, '');
+  for (const r of ['likegoal', 'giftgoal', 'leaderboard', 'alerts']) {
+    const f = document.createElement('iframe');
+    f.src = `${r}.html${q ? '?' + q : ''}`;
+    f.setAttribute('allowtransparency', 'true');
+    f.setAttribute('allow', 'autoplay');
+    document.body.appendChild(f);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+/* LiveSpark overlay themes. Each overlay pack is a set of tokens; the
+   overlays themselves only use the tokens, so a new pack is just a new block. */
+
+:root, [data-theme="spark"] {
+  --ink: #F4F7FF;
+  --ink-soft: rgba(244, 247, 255, .72);
+  --slab: #0B1229;
+  --slab-2: #131D3F;
+  --accent: #C8FF3D;
+  --accent-ink: #0B1229;
+  --hot: #FF3DA5;
+  --glow: 0 0 28px rgba(200, 255, 61, .55);
+  --edge: rgba(200, 255, 61, .9);
+  --track: rgba(255, 255, 255, .10);
+  --radius: 6px;
+  --skew: -8deg;
+  --display: 'Unbounded', 'Arial Black', sans-serif;
+  --body: 'Manrope', 'Segoe UI', sans-serif;
+}
+
+[data-theme="ember"] {
+  --ink: #FFF4E8;
+  --ink-soft: rgba(255, 244, 232, .72);
+  --slab: #1B120E;
+  --slab-2: #2A1A12;
+  --accent: #FF7A1A;
+  --accent-ink: #1B120E;
+  --hot: #FFC94D;
+  --glow: 0 0 32px rgba(255, 122, 26, .55);
+  --edge: rgba(255, 201, 77, .9);
+  --track: rgba(255, 220, 190, .12);
+  --radius: 14px;
+  --skew: 0deg;
+}
+
+[data-theme="ice"] {
+  --ink: #062033;
+  --ink-soft: rgba(6, 32, 51, .7);
+  --slab: rgba(236, 250, 255, .86);
+  --slab-2: rgba(210, 242, 255, .9);
+  --accent: #19C7F0;
+  --accent-ink: #FFFFFF;
+  --hot: #7A5CFF;
+  --glow: 0 10px 40px rgba(25, 199, 240, .35);
+  --edge: rgba(255, 255, 255, .95);
+  --track: rgba(6, 32, 51, .12);
+  --radius: 26px;
+  --skew: 0deg;
+}
+
+html, body {
+  margin: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--body);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The dashboard preview shows overlays on a stand-in camera frame. */
+body.preview-bg {
+  background:
+    radial-gradient(1200px 900px at 30% 25%, #3a4a6b 0%, transparent 60%),
+    radial-gradient(900px 900px at 80% 80%, #2b2238 0%, transparent 60%),
+    linear-gradient(160deg, #1a2235, #10131c);
+}

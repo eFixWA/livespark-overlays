@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LiveSpark · Top gifters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Unbounded:wght@800&display=swap">
+<link rel="stylesheet" href="shared/themes.css">
+<style>
+  #board { position: absolute; left: 40px; top: 1000px; width: 440px; }
+  .title {
+    display: inline-block; padding: 10px 18px 12px; margin-bottom: 10px;
+    background: var(--accent); color: var(--accent-ink);
+    font: 800 24px/1 var(--display); letter-spacing: .04em; text-transform: uppercase;
+    border-radius: calc(var(--radius) * .6); transform: skewX(var(--skew));
+  }
+  .rows { position: relative; }
+  .row {
+    display: flex; align-items: center; gap: 14px; height: 72px; margin-bottom: 8px; padding: 0 18px 0 10px;
+    background: linear-gradient(115deg, var(--slab), var(--slab-2));
+    border-radius: var(--radius); box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  }
+  .rank { width: 44px; text-align: center; font: 800 34px/1 var(--display); color: transparent; -webkit-text-stroke: 2px var(--ink-soft); }
+  .row:first-child .rank { color: var(--accent); -webkit-text-stroke: 0; }
+  .row:first-child { box-shadow: 0 10px 26px rgba(0,0,0,.35), inset 0 0 0 3px var(--edge); }
+  .av { flex: none; width: 48px; height: 48px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+        background: var(--slab-2); box-shadow: inset 0 0 0 3px var(--accent); font: 800 22px/1 var(--display); }
+  .av img { width: 100%; height: 100%; object-fit: cover; }
+  .nm { flex: 1; min-width: 0; font: 700 26px/1.1 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dm { font: 800 26px/1 var(--body); font-variant-numeric: tabular-nums; color: var(--accent); }
+  .empty { padding: 18px; font: 700 24px/1.2 var(--body); color: var(--ink-soft); background: var(--slab); border-radius: var(--radius); }
+</style>
+</head>
+<body>
+<div id="board"><div class="title"></div><div class="rows"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="shared/core.js"></script>
+<script>
+(function () {
+  const rowsEl = document.querySelector('#board .rows');
+  const titleEl = document.querySelector('#board .title');
+  if (LS.params.get('preview') === '1') document.body.classList.add('preview-bg');
+  let lastKey = '';
+
+  function render(list) {
+    titleEl.textContent = LS.t('topGifters');
+    const key = JSON.stringify(list.map((g) => [g.uniqueId, g.diamonds]));
+    if (key === lastKey) return;
+    lastKey = key;
+
+    // FLIP: remember where each gifter was, re-render, then animate from old to new spot.
+    const before = new Map([...rowsEl.children].map((r) => [r.dataset.id, r.getBoundingClientRect().top]));
+    if (!list.length) { rowsEl.innerHTML = `<div class="empty">${LS.esc(LS.t('waiting'))}</div>`; return; }
+    rowsEl.innerHTML = list.map((g, i) => `
+      <div class="row" data-id="${LS.esc(g.uniqueId)}">
+        <div class="rank">${i + 1}</div>
+        <div class="av">${g.avatar ? `<img src="${LS.esc(g.avatar)}" alt="" referrerpolicy="no-referrer">` : LS.esc(LS.initials(g.nickname))}</div>
+        <div class="nm">${LS.esc(g.nickname)}</div>
+        <div class="dm">${LS.fmt(g.diamonds)} 💎</div>
+      </div>`).join('');
+    [...rowsEl.children].forEach((r, i) => {
+      const was = before.get(r.dataset.id);
+      if (was === undefined) gsap.from(r, { x: -60, opacity: 0, duration: .5, delay: i * .05, ease: 'expo.out' });
+      else {
+        const dy = was - r.getBoundingClientRect().top;
+        if (dy) gsap.from(r, { y: dy, duration: .6, ease: 'power3.inOut' });
+      }
+    });
+  }
+
+  gsap.from('#board .title', { scaleX: 0, transformOrigin: '0 50%', duration: .6, ease: 'expo.out' });
+  LS.connect({ state(s) { render(s.leaderboard || []); } });
+
+  if (LS.params.get('demo') === '1') {
+    render([
+      { uniqueId: 'a', nickname: 'djcarlos', diamonds: 1250 },
+      { uniqueId: 'b', nickname: 'maria.sews', diamonds: 640 },
+      { uniqueId: 'c', nickname: 'abuela_rosa', diamonds: 210 },
+      { uniqueId: 'd', nickname: 'tech.tony', diamonds: 95 },
+      { uniqueId: 'e', nickname: 'luna_gamer', diamonds: 30 },
+    ]);
+  }
+})();
+</script>
+</body>
+</html>

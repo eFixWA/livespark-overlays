@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LiveSpark · Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Unbounded:wght@800&display=swap">
+<link rel="stylesheet" href="shared/themes.css">
+<style>
+  #stage { position: absolute; left: 0; right: 0; top: 560px; display: flex; justify-content: center; }
+  .alert { position: relative; width: 900px; visibility: hidden; }
+
+  .slab {
+    position: relative; display: flex; align-items: center; gap: 34px;
+    padding: 34px 44px 34px 34px;
+    background: linear-gradient(115deg, var(--slab) 0%, var(--slab-2) 100%);
+    border-radius: var(--radius);
+    transform: skewX(var(--skew));
+    box-shadow: 0 24px 60px rgba(0,0,0,.45), var(--glow);
+    overflow: hidden;
+  }
+  .slab::before { /* thick accent edge */
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 16px; background: var(--accent);
+  }
+  .slab .sheen {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.18) 48%, transparent 66%);
+    transform: translateX(-120%);
+  }
+  .slab > *:not(.sheen) { transform: skewX(calc(var(--skew) * -1)); }
+
+  .avatar {
+    flex: none; width: 150px; height: 150px; margin-left: 14px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink);
+    display: grid; place-items: center; overflow: hidden;
+    font: 800 72px/1 var(--display);
+    box-shadow: 0 0 0 6px var(--slab), 0 0 0 10px var(--edge);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .text { min-width: 0; flex: 1; }
+  .name {
+    font: 800 64px/1.05 var(--display); letter-spacing: -.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .name .ch { display: inline-block; will-change: transform; }
+  .verb {
+    display: inline-block; margin-top: 16px; padding: 8px 18px 10px;
+    background: var(--accent); color: var(--accent-ink);
+    font: 800 34px/1 var(--body); letter-spacing: .02em; text-transform: uppercase;
+    border-radius: calc(var(--radius) * .6);
+  }
+  .gift {
+    margin-top: 18px; display: flex; align-items: center; gap: 16px;
+    font: 800 42px/1 var(--body); color: var(--ink);
+  }
+  .gift img { width: 64px; height: 64px; object-fit: contain; }
+  .gift .count { color: var(--accent); font-family: var(--display); }
+  .gift .dia { color: var(--ink-soft); font-size: 30px; font-weight: 600; }
+
+  .burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+  .p {
+    position: absolute; left: -9px; top: -9px; width: 18px; height: 18px;
+    background: var(--accent); border-radius: 2px;
+  }
+  .p.hot { background: var(--hot); }
+  .p.ring { border-radius: 50%; background: transparent; border: 4px solid var(--accent); }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="shared/core.js"></script>
+<script>
+(function () {
+  const stage = document.getElementById('stage');
+  const queue = [];
+  let busy = false;
+  if (LS.params.get('preview') === '1') document.body.classList.add('preview-bg');
+
+  function nameHTML(name) {
+    return [...String(name)].map((c) => `<span class="ch">${c === ' ' ? '&nbsp;' : LS.esc(c)}</span>`).join('');
+  }
+
+  function build(ev) {
+    const u = ev.user || {};
+    const name = u.nickname || u.uniqueId || 'Someone';
+    const el = document.createElement('div');
+    el.className = 'alert';
+    const avatar = u.avatar
+      ? `<img src="${LS.esc(u.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${LS.initials(name)}'))">`
+      : LS.initials(name);
+    let detail = `<div class="verb">${LS.esc(LS.t(ev.type))}</div>`;
+    if (ev.type === 'gift') {
+      detail = `<div class="verb">${LS.esc(LS.t('gift'))}</div>
+        <div class="gift">${ev.giftImage ? `<img src="${LS.esc(ev.giftImage)}" alt="">` : ''}
+          <span>${LS.esc(ev.giftName)}</span><span class="count">×${ev.repeatCount || 1}</span>
+          <span class="dia">${LS.fmt(ev.diamonds)} 💎</span></div>`;
+    } else if (ev.type === 'like') {
+      detail = `<div class="verb">${LS.esc(LS.t('like'))} ×${LS.fmt(ev.count)}</div>`;
+    }
+    el.innerHTML = `
+      <div class="burst"></div>
+      <div class="slab"><div class="sheen"></div>
+        <div class="avatar">${avatar}</div>
+        <div class="text"><div class="name">${nameHTML(name)}</div>${detail}</div>
+      </div>`;
+    // Long names shrink to fit instead of being cut off.
+    const len = [...name].length;
+    if (len > 12) el.querySelector('.name').style.fontSize = Math.max(34, Math.round(64 * 12 / len)) + 'px';
+    return el;
+  }
+
+  function burst(el, big) {
+    const b = el.querySelector('.burst');
+    const n = big ? 46 : 22;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('i');
+      p.className = 'p' + (i % 5 === 0 ? ' ring' : i % 3 === 0 ? ' hot' : '');
+      b.appendChild(p);
+      const ang = (Math.PI * 2 * i) / n + Math.random() * .4;
+      const dist = (big ? 520 : 380) + Math.random() * 160;
+      gsap.fromTo(p,
+        { x: 0, y: 0, scale: .4 + Math.random() * .8, rotation: 0, opacity: 1 },
+        { x: Math.cos(ang) * dist, y: Math.sin(ang) * dist * .55, rotation: Math.random() * 540 - 270,
+          opacity: 0, duration: 1.1 + Math.random() * .6, ease: 'expo.out' });
+    }
+  }
+
+  function play(ev, settings) {
+    busy = true;
+    const el = build(ev);
+    stage.appendChild(el);
+    const big = ev.type === 'gift' && (ev.diamonds || 0) >= 100;
+    LS.sound(ev.type === 'gift' ? (big ? 'big' : 'gift') : ev.type);
+    const hold = Math.max(2, Math.min(15, Number(settings.alertSeconds) || 5));
+
+    const slab = el.querySelector('.slab');
+    const chars = el.querySelectorAll('.name .ch');
+    const tl = gsap.timeline({ onComplete: () => { el.remove(); busy = false; next(); } });
+    tl.set(el, { visibility: 'visible' })
+      .from(slab, { scaleX: 0, transformOrigin: '0% 50%', duration: .55, ease: 'expo.out' })
+      .add(() => burst(el, big), .15)
+      .from(el.querySelector('.avatar'), { scale: 0, rotation: -90, duration: .6, ease: 'back.out(2.2)' }, .2)
+      .from(chars, { yPercent: 110, opacity: 0, stagger: .025, duration: .45, ease: 'power3.out' }, .3)
+      .from(el.querySelectorAll('.verb, .gift'), { x: -40, opacity: 0, stagger: .1, duration: .4, ease: 'power2.out' }, .5)
+      .to(el.querySelector('.sheen'), { xPercent: 240, duration: 1, ease: 'power2.inOut' }, .6);
+    if (big) tl.fromTo(slab, { x: -8 }, { x: 8, repeat: 7, yoyo: true, duration: .05, ease: 'none', clearProps: 'x' }, .6);
+    tl.to(el, { y: -60, opacity: 0, duration: .45, ease: 'power2.in' }, `+=${hold}`);
+  }
+
+  function next() {
+    if (busy || !queue.length) return;
+    const { ev, settings } = queue.shift();
+    play(ev, settings);
+  }
+
+  LS.connect({
+    event(ev, settings) {
+      if (queue.length > 30) queue.shift(); // never fall minutes behind on a gift storm
+      queue.push({ ev, settings });
+      next();
+    },
+  });
+
+  // ?demo=1 cycles sample alerts so the look can be checked without TikTok.
+  if (LS.params.get('demo') === '1') {
+    const samples = [
+      { type: 'follow', user: { nickname: 'maria.sews' } },
+      { type: 'gift', user: { nickname: 'djcarlos' }, giftName: 'Galaxy', repeatCount: 1, diamonds: 1000 },
+      { type: 'share', user: { nickname: 'luna_gamer' } },
+    ];
+    const pick = LS.params.get('sample');
+    const list = pick ? [samples[Number(pick)] || samples[0]] : samples;
+    let i = 0;
+    const loop = () => { queue.push({ ev: list[i++ % list.length], settings: { alertSeconds: LS.params.get('hold') || 2 } }); next(); };
+    loop();
+    if (!LS.params.get('freeze')) setInterval(() => { if (!busy) loop(); }, 800);
+  }
+})();
+</script>
+</body>
+</html>
