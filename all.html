@@ -20,6 +20,13 @@
     f.setAttribute('allow', 'autoplay');
     document.body.appendChild(f);
   }
+  // Scale the 1080×1920 canvas to the size the streaming app gives us.
+  function fit() {
+    const w = window.innerWidth || 1080, h = window.innerHeight || 1920;
+    document.documentElement.style.zoom = String(Math.min(w / 1080, h / 1920));
+  }
+  fit();
+  window.addEventListener('resize', fit);
 </script>
 </body>
 </html>

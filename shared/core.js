@@ -122,6 +122,17 @@
     } catch { /* audio blocked */ }
   };
 
+  // Overlays are designed on a 1080×1920 canvas. Apps like TikTok LIVE Studio size
+  // the page to their source box, so scale the canvas to fit whatever size we get.
+  function fit() {
+    if (window.self !== window.top) return; // inside the all-in-one page, which fits itself
+    const w = window.innerWidth || 1080;
+    const h = window.innerHeight || 1920;
+    document.documentElement.style.zoom = String(Math.min(w / 1080, h / 1920));
+  }
+  fit();
+  window.addEventListener('resize', fit);
+
   LS.applyTheme();
   window.LS = LS;
 })();
